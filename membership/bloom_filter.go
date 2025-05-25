@@ -3,6 +3,7 @@ package membership
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"math"
 
@@ -22,6 +23,7 @@ type BloomFilter struct {
 	bitCount      uint
 	hashFuncCount uint
 	hashFunctions []*utils.Murmur3
+	seeds         []uint32
 }
 
 // NewBloomFilter creates a new Bloom filter with specified capacity and error rate
@@ -48,11 +50,13 @@ func NewBloomFilterWithParams(m, k uint) (*BloomFilter, error) {
 
 	bitArray := make([]bool, m)
 	hashFunctions := make([]*utils.Murmur3, k)
+	seeds := make([]uint32, k)
 	for i := range k {
-		hashFunctions[i] = utils.NewMurmur3WithSeed(uint32(k))
+		seeds[i] = uint32(i + 1)
+		hashFunctions[i] = utils.NewMurmur3WithSeed(seeds[i])
 	}
 
-	return &BloomFilter{bitArray: bitArray, capacity: m, bitCount: uint(len(bitArray)), hashFuncCount: uint(len(hashFunctions)), hashFunctions: hashFunctions}, nil
+	return &BloomFilter{bitArray: bitArray, capacity: m, bitCount: uint(len(bitArray)), hashFuncCount: uint(len(hashFunctions)), hashFunctions: hashFunctions, seeds: seeds}, nil
 }
 
 // Add inserts an item into the Bloom filter
@@ -138,6 +142,44 @@ func (bf *BloomFilter) FalsePositiveRate() float32 {
 	return float32(probability)
 }
 
+func (bf *BloomFilter) Merge(other *BloomFilter) error {
+	if err := checkCompatibility(bf, other); err != nil {
+		return fmt.Errorf("cannot merge: %v", err)
+	}
+
+	for i := range bf.bitArray {
+		bf.bitArray[i] = bf.bitArray[i] || other.bitArray[i]
+	}
+
+	return nil
+}
+
+func (bf *BloomFilter) Intersect(other *BloomFilter) (*BloomFilter, error) {
+	if err := checkCompatibility(bf, other); err != nil {
+		return nil, fmt.Errorf("cannot intersect: %v", err)
+	}
+
+	result := &BloomFilter{
+		bitArray:      make([]bool, bf.bitCount),
+		capacity:      bf.capacity,
+		bitCount:      bf.bitCount,
+		hashFuncCount: bf.hashFuncCount,
+		hashFunctions: make([]*utils.Murmur3, bf.hashFuncCount),
+		seeds:         make([]uint32, bf.hashFuncCount),
+	}
+
+	copy(result.seeds, bf.seeds)
+	for i, seed := range result.seeds {
+		result.hashFunctions[i] = utils.NewMurmur3WithSeed(seed)
+	}
+
+	for i := range bf.bitArray {
+		result.bitArray[i] = bf.bitArray[i] && other.bitArray[i]
+	}
+
+	return result, nil
+}
+
 func validateInput(item []byte) error {
 	if item == nil {
 		return errors.New("input cannot be nil")
@@ -145,6 +187,24 @@ func validateInput(item []byte) error {
 
 	if len(item) == 0 {
 		return errors.New("input cannot be empty")
+	}
+
+	return nil
+}
+
+func checkCompatibility(bf1, bf2 *BloomFilter) error {
+	if bf1.bitCount != bf2.bitCount {
+		return errors.New("bloom filters have different bit array sizes")
+	}
+	if bf1.hashFuncCount != bf2.hashFuncCount {
+		return errors.New("bloom filters have different numbers of hash functions")
+	}
+
+	// Check if they use the same seeds
+	for i, seed1 := range bf1.seeds {
+		if seed1 != bf2.seeds[i] {
+			return errors.New("bloom filters use different hash function seeds")
+		}
 	}
 
 	return nil

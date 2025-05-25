@@ -217,3 +217,65 @@ func TestBloomFilter_Contains(t *testing.T) {
 		})
 	}
 }
+
+func TestBloomFilter_Merge(t *testing.T) {
+	// Create two filters
+	bf1, _ := NewBloomFilter(1000, 0.01)
+	bf2, _ := NewBloomFilter(1000, 0.01)
+
+	// Add different items to each
+	bf1.Add([]byte("item1"))
+	bf1.Add([]byte("item2"))
+	bf2.Add([]byte("item3"))
+	bf2.Add([]byte("item4"))
+
+	// Merge
+	if err := bf1.Merge(bf2); err != nil {
+		t.Errorf("Merge failed: %v", err)
+	}
+
+	// Check items from both filters exist
+	items := [][]byte{
+		[]byte("item1"),
+		[]byte("item2"),
+		[]byte("item3"),
+		[]byte("item4"),
+	}
+	for _, item := range items {
+		exists, _ := bf1.Contains(item)
+		if !exists {
+			t.Errorf("After merge, item %s should exist", item)
+		}
+	}
+}
+
+func TestBloomFilter_Intersect(t *testing.T) {
+	// Create two filters
+	bf1, _ := NewBloomFilter(1000, 0.01)
+	bf2, _ := NewBloomFilter(1000, 0.01)
+
+	// Add items with some overlap
+	commonItem := []byte("common")
+	bf1.Add([]byte("item1"))
+	bf1.Add(commonItem)
+	bf2.Add([]byte("item2"))
+	bf2.Add(commonItem)
+
+	// Intersect
+	result, err := bf1.Intersect(bf2)
+	if err != nil {
+		t.Errorf("Intersect failed: %v", err)
+	}
+
+	// Check common item exists
+	exists, _ := result.Contains(commonItem)
+	if !exists {
+		t.Error("Common item should exist in intersection")
+	}
+
+	// Check non-common items don't exist
+	exists, _ = result.Contains([]byte("item1"))
+	if exists {
+		t.Error("Non-common item should not exist in intersection")
+	}
+}
