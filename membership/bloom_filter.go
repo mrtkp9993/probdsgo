@@ -142,16 +142,30 @@ func (bf *BloomFilter) FalsePositiveRate() float32 {
 	return float32(probability)
 }
 
-func (bf *BloomFilter) Merge(other *BloomFilter) error {
+func (bf *BloomFilter) Merge(other *BloomFilter) (*BloomFilter, error) {
 	if err := checkCompatibility(bf, other); err != nil {
-		return fmt.Errorf("cannot merge: %v", err)
+		return nil, fmt.Errorf("cannot merge: %v", err)
+	}
+
+	result := &BloomFilter{
+		bitArray:      make([]bool, bf.bitCount),
+		capacity:      bf.capacity,
+		bitCount:      bf.bitCount,
+		hashFuncCount: bf.hashFuncCount,
+		hashFunctions: make([]*utils.Murmur3, bf.hashFuncCount),
+		seeds:         make([]uint32, bf.hashFuncCount),
+	}
+
+	copy(result.seeds, bf.seeds)
+	for i, seed := range result.seeds {
+		result.hashFunctions[i] = utils.NewMurmur3WithSeed(seed)
 	}
 
 	for i := range bf.bitArray {
-		bf.bitArray[i] = bf.bitArray[i] || other.bitArray[i]
+		result.bitArray[i] = bf.bitArray[i] || other.bitArray[i]
 	}
 
-	return nil
+	return result, nil
 }
 
 func (bf *BloomFilter) Intersect(other *BloomFilter) (*BloomFilter, error) {

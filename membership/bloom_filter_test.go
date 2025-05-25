@@ -219,63 +219,126 @@ func TestBloomFilter_Contains(t *testing.T) {
 }
 
 func TestBloomFilter_Merge(t *testing.T) {
-	// Create two filters
-	bf1, _ := NewBloomFilter(1000, 0.01)
-	bf2, _ := NewBloomFilter(1000, 0.01)
-
-	// Add different items to each
-	bf1.Add([]byte("item1"))
-	bf1.Add([]byte("item2"))
-	bf2.Add([]byte("item3"))
-	bf2.Add([]byte("item4"))
-
-	// Merge
-	if err := bf1.Merge(bf2); err != nil {
-		t.Errorf("Merge failed: %v", err)
+	// Create two filters with same parameters
+	bf1, err := NewBloomFilter(1000, 0.01)
+	if err != nil {
+		t.Fatalf("Failed to create first BloomFilter: %v", err)
+	}
+	bf2, err := NewBloomFilter(1000, 0.01)
+	if err != nil {
+		t.Fatalf("Failed to create second BloomFilter: %v", err)
 	}
 
-	// Check items from both filters exist
-	items := [][]byte{
-		[]byte("item1"),
-		[]byte("item2"),
-		[]byte("item3"),
-		[]byte("item4"),
-	}
-	for _, item := range items {
-		exists, _ := bf1.Contains(item)
-		if !exists {
-			t.Errorf("After merge, item %s should exist", item)
+	// Add different items to each filter
+	items1 := [][]byte{[]byte("item1"), []byte("item2")}
+	items2 := [][]byte{[]byte("item3"), []byte("item4")}
+
+	for _, item := range items1 {
+		if err := bf1.Add(item); err != nil {
+			t.Fatalf("Failed to add item to first filter: %v", err)
 		}
+	}
+	for _, item := range items2 {
+		if err := bf2.Add(item); err != nil {
+			t.Fatalf("Failed to add item to second filter: %v", err)
+		}
+	}
+
+	// Merge filters
+	merged, err := bf1.Merge(bf2)
+	if err != nil {
+		t.Fatalf("Merge failed: %v", err)
+	}
+
+	// Check all items exist in merged filter
+	allItems := append(items1, items2...)
+	for _, item := range allItems {
+		exists, err := merged.Contains(item)
+		if err != nil {
+			t.Errorf("Error checking item in merged filter: %v", err)
+		}
+		if !exists {
+			t.Errorf("Item %s should exist in merged filter", item)
+		}
+	}
+
+	// Test incompatible filters
+	bf3, _ := NewBloomFilter(2000, 0.01) // Different size
+	_, err = bf1.Merge(bf3)
+	if err == nil {
+		t.Error("Merge of incompatible filters should return error")
 	}
 }
 
 func TestBloomFilter_Intersect(t *testing.T) {
-	// Create two filters
-	bf1, _ := NewBloomFilter(1000, 0.01)
-	bf2, _ := NewBloomFilter(1000, 0.01)
+	// Create two filters with same parameters
+	bf1, err := NewBloomFilter(1000, 0.01)
+	if err != nil {
+		t.Fatalf("Failed to create first BloomFilter: %v", err)
+	}
+	bf2, err := NewBloomFilter(1000, 0.01)
+	if err != nil {
+		t.Fatalf("Failed to create second BloomFilter: %v", err)
+	}
 
 	// Add items with some overlap
-	commonItem := []byte("common")
-	bf1.Add([]byte("item1"))
-	bf1.Add(commonItem)
-	bf2.Add([]byte("item2"))
-	bf2.Add(commonItem)
+	commonItems := [][]byte{[]byte("common1"), []byte("common2")}
+	uniqueItems1 := [][]byte{[]byte("unique1"), []byte("unique2")}
+	uniqueItems2 := [][]byte{[]byte("unique3"), []byte("unique4")}
 
-	// Intersect
-	result, err := bf1.Intersect(bf2)
+	// Add to first filter
+	for _, item := range append(commonItems, uniqueItems1...) {
+		if err := bf1.Add(item); err != nil {
+			t.Fatalf("Failed to add item to first filter: %v", err)
+		}
+	}
+
+	// Add to second filter
+	for _, item := range append(commonItems, uniqueItems2...) {
+		if err := bf2.Add(item); err != nil {
+			t.Fatalf("Failed to add item to second filter: %v", err)
+		}
+	}
+
+	// Intersect filters
+	intersection, err := bf1.Intersect(bf2)
 	if err != nil {
-		t.Errorf("Intersect failed: %v", err)
+		t.Fatalf("Intersect failed: %v", err)
 	}
 
-	// Check common item exists
-	exists, _ := result.Contains(commonItem)
-	if !exists {
-		t.Error("Common item should exist in intersection")
+	// Check common items exist in intersection
+	for _, item := range commonItems {
+		exists, err := intersection.Contains(item)
+		if err != nil {
+			t.Errorf("Error checking common item in intersection: %v", err)
+		}
+		if !exists {
+			t.Errorf("Common item %s should exist in intersection", item)
+		}
 	}
 
-	// Check non-common items don't exist
-	exists, _ = result.Contains([]byte("item1"))
-	if exists {
-		t.Error("Non-common item should not exist in intersection")
+	// Check unique items might not exist in intersection
+	// Note: false positives are possible, so we can't assert they definitely don't exist
+	falsePositives := 0
+	allUniqueItems := append(uniqueItems1, uniqueItems2...)
+	for _, item := range allUniqueItems {
+		exists, err := intersection.Contains(item)
+		if err != nil {
+			t.Errorf("Error checking unique item in intersection: %v", err)
+		}
+		if exists {
+			falsePositives++
+		}
+	}
+
+	// Log false positive rate for unique items
+	fpr := float64(falsePositives) / float64(len(allUniqueItems))
+	t.Logf("False positive rate for unique items: %.2f", fpr)
+
+	// Test incompatible filters
+	bf3, _ := NewBloomFilter(2000, 0.01) // Different size
+	_, err = bf1.Intersect(bf3)
+	if err == nil {
+		t.Error("Intersect of incompatible filters should return error")
 	}
 }
