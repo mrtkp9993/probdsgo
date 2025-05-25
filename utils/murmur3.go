@@ -4,6 +4,18 @@
 // https://github.com/jwerle/murmurhash.c/blob/master/murmurhash.c
 package utils
 
+type Murmur3 struct {
+	seed uint32
+}
+
+func NewMurmur3WithSeed(seed uint32) *Murmur3 {
+	return &Murmur3{seed: seed}
+}
+
+func (m *Murmur3) Hash(data []byte) uint32 {
+	return Murmur3_32(data, m.seed)
+}
+
 func murmur32Scramble(k uint32) uint32 {
 	k *= 0xcc9e2d51
 	k = (k << 15) | (k >> (17))
