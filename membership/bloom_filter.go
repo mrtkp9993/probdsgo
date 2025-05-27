@@ -19,7 +19,6 @@ const (
 // used to test whether an element is a member of a set
 type BloomFilter struct {
 	bitArray      []bool
-	capacity      uint
 	bitCount      uint
 	hashFuncCount uint
 	hashFunctions []*utils.Murmur3
@@ -56,7 +55,7 @@ func NewBloomFilterWithParams(m, k uint) (*BloomFilter, error) {
 		hashFunctions[i] = utils.NewMurmur3WithSeed(seeds[i])
 	}
 
-	return &BloomFilter{bitArray: bitArray, capacity: m, bitCount: uint(len(bitArray)), hashFuncCount: uint(len(hashFunctions)), hashFunctions: hashFunctions, seeds: seeds}, nil
+	return &BloomFilter{bitArray: bitArray, bitCount: uint(len(bitArray)), hashFuncCount: uint(len(hashFunctions)), hashFunctions: hashFunctions, seeds: seeds}, nil
 }
 
 // Add inserts an item into the Bloom filter
@@ -149,7 +148,6 @@ func (bf *BloomFilter) Merge(other *BloomFilter) (*BloomFilter, error) {
 
 	result := &BloomFilter{
 		bitArray:      make([]bool, bf.bitCount),
-		capacity:      bf.capacity,
 		bitCount:      bf.bitCount,
 		hashFuncCount: bf.hashFuncCount,
 		hashFunctions: make([]*utils.Murmur3, bf.hashFuncCount),
@@ -175,7 +173,6 @@ func (bf *BloomFilter) Intersect(other *BloomFilter) (*BloomFilter, error) {
 
 	result := &BloomFilter{
 		bitArray:      make([]bool, bf.bitCount),
-		capacity:      bf.capacity,
 		bitCount:      bf.bitCount,
 		hashFuncCount: bf.hashFuncCount,
 		hashFunctions: make([]*utils.Murmur3, bf.hashFuncCount),
