@@ -5,7 +5,8 @@ This repository contains implementations of probabilistic data structures in Go.
 ## ToDo
 
 - [ ] Hash functions
-    - [x] Murmur3
+    - [x] Murmur3 (32-bit)
+    - [x] FNV1 (64-bit)
 - [ ] Membership
     - [x] Bloom filter
     - [ ] Quotient filter
