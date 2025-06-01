@@ -1,8 +1,10 @@
 # Probabilistic Data Structures in Go
 
+*Work in progress*
+
 This repository contains implementations of probabilistic data structures in Go.
 
-## ToDo
+## Feature Roadmap
 
 - [ ] Hash functions
     - [x] Murmur3 (32-bit)
@@ -20,6 +22,12 @@ This repository contains implementations of probabilistic data structures in Go.
     - [ ] t-digest
 - [ ] Similarity
     - [ ] Locality-sensitive hashing
+
+Thread-safe and optimized implementations will be added in the future.
+
+## Examples
+
+Examples are available in the `examples` directory.
 
 ## Contributing
 

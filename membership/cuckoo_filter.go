@@ -15,9 +15,14 @@ var LOAD_FACTOR_MAP = map[uint]float64{
 	8: 0.98,
 }
 
+type FINGERPRINT_SIZE uint
+
 const (
 	// MaxKicks is the maximum number of relocations before declaring failure
 	MaxKicks = 500
+
+	FINGERPRINT_SIZE_8  FINGERPRINT_SIZE = 0
+	FINGERPRINT_SIZE_16 FINGERPRINT_SIZE = 1
 )
 
 // Bucket represents a bucket in the Cuckoo filter
@@ -38,9 +43,9 @@ type CuckooFilter struct {
 	count           uint
 }
 
-func NewCuckooFilter(capacity uint, bucketSize uint, desiredFpr float64) (*CuckooFilter, error) {
-	if capacity < 1 || desiredFpr <= 0 || desiredFpr >= 1 {
-		return nil, errors.New("invalid capacity or desired false positive rate")
+func NewCuckooFilter(capacity uint, bucketSize uint, fingerprintSize FINGERPRINT_SIZE) (*CuckooFilter, error) {
+	if capacity < 1 {
+		return nil, errors.New("invalid capacity")
 	}
 
 	if bucketSize == 0 {
@@ -51,11 +56,9 @@ func NewCuckooFilter(capacity uint, bucketSize uint, desiredFpr float64) (*Cucko
 		return nil, errors.New("invalid bucket size, must be 2, 4, or 8")
 	}
 
-	fingerprintSize := uint(math.Ceil(math.Log2(2 * float64(bucketSize) / desiredFpr)))
-	if fingerprintSize > 8 {
-		fingerprintSize = 8
-	} else if fingerprintSize < 1 {
-		fingerprintSize = 1
+	fpSize := uint(8)
+	if fingerprintSize == FINGERPRINT_SIZE_16 {
+		fpSize = 16
 	}
 
 	loadFactor := LOAD_FACTOR_MAP[bucketSize]
@@ -81,7 +84,7 @@ func NewCuckooFilter(capacity uint, bucketSize uint, desiredFpr float64) (*Cucko
 		count:               0,
 		rng:                 rng,
 		bucketSize:          bucketSize,
-		fingerprintSize:     fingerprintSize,
+		fingerprintSize:     fpSize,
 	}, nil
 }
 

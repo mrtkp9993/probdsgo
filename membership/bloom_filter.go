@@ -4,7 +4,6 @@ package membership
 import (
 	"errors"
 	"fmt"
-	"log"
 	"math"
 
 	"github.com/mrtkp9993/probdsgo/utils"
@@ -116,7 +115,6 @@ func (bf *BloomFilter) Cardinality() uint {
 	}
 
 	n := -1.0 * (float64(bf.bitCount) / float64(bf.hashFuncCount)) * math.Log(1-(float64(X)/float64(bf.bitCount)))
-	log.Println(n, X)
 	return uint(math.Round(n))
 }
 
