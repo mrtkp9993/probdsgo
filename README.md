@@ -8,7 +8,8 @@ This repository contains implementations of probabilistic data structures in Go.
     - [x] Murmur3
 - [ ] Membership
     - [x] Bloom filter
-    - [ ] Cuckoo filter
+    - [ ] Quotient filter
+    - [X] Cuckoo filter
 - [ ] Cardinality
     - [ ] HyperLogLog
 - [ ] Frequency
@@ -17,7 +18,7 @@ This repository contains implementations of probabilistic data structures in Go.
     - [ ] q-digest
     - [ ] t-digest
 - [ ] Similarity
-    - [ ] Locality-sensitive hashing 
+    - [ ] Locality-sensitive hashing
 
 ## Contributing
 

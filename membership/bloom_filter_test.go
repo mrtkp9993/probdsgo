@@ -330,11 +330,6 @@ func TestBloomFilter_Intersect(t *testing.T) {
 			falsePositives++
 		}
 	}
-
-	// Log false positive rate for unique items
-	fpr := float64(falsePositives) / float64(len(allUniqueItems))
-	t.Logf("False positive rate for unique items: %.2f", fpr)
-
 	// Test incompatible filters
 	bf3, _ := NewBloomFilter(2000, 0.01) // Different size
 	_, err = bf1.Intersect(bf3)
